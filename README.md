@@ -18,7 +18,7 @@ Highlight text in the translated window and hover over the selection to translat
 
 ![A selected Japanese phrase with its English translation in a popover](docs/screenshots/selected-text-translation.png)
 
-These screenshots were supplied by the project owner and illustrate the workflow on Dataquest. They may show an earlier version. Version **0.3.4** preserves inline code and shortcut formatting, including during translation retries.
+These screenshots were supplied by the project owner and illustrate the workflow on Dataquest. They may show an earlier version. Version **0.3.5** also preserves rendered mathematics when translating Japanese websites.
 
 ## Features
 
@@ -31,6 +31,7 @@ These screenshots were supplied by the project owner and illustrate the workflow
 - Scroll inside long popovers; move the pointer into the popover to keep it open. Close with **×** or **Esc**.
 - Stable translated views: updates are prepared out of sight and shown only when ready.
 - Inline code and keyboard shortcuts keep their original text, monospace font, colors, and background. Bold text and links stay inside the translated sentence.
+- Rendered KaTeX, MathJax, and MathML expressions stay intact while surrounding prose is translated.
 - Original window position and size restored when the session ends.
 
 ## Install
@@ -57,9 +58,11 @@ No build step, Node.js, or account is required to use the extension. Node.js is 
 6. Toggle **Furigana**, **Scroll**, or **Klik** as needed.
 7. Click **Selesai**, or close the mirror, to restore the original window.
 
+For a Japanese website, set **Bahasa asli** to **日本語 — Jepang** and **Bahasa belajar** to **English**, **Bahasa Indonesia**, or another supported target. The popup preview follows your selections. Japanese → English was also checked directly on an OnlineMathContest problem page.
+
 For long hover text, move into the popover and scroll. Its header and close button remain available while the full text scrolls. Selected-text translation supports up to 2,000 characters.
 
-To update an existing installation, end the mirror session, replace the extension files, and click **Reload** on `chrome://extensions`. Save any work in the original lesson, refresh that tab, and start a new session. The current version is **0.3.4**.
+To update an existing installation, end the mirror session, replace the extension files, and click **Reload** on `chrome://extensions`. Save any work in the original lesson, refresh that tab, and start a new session. The current version is **0.3.5**.
 
 [Panduan lengkap dalam Bahasa Indonesia](docs/guide.id.md)
 
@@ -107,6 +110,8 @@ npm test
 Tests use isolated browser profiles under the ignored `work/` directory. They prefer installed Google Chrome when available; set `KOTOBA_CHROME_EXECUTABLE` to choose another executable. A test-only copy of the manifest receives localhost access; the release manifest keeps its original permissions.
 
 The default suite controls translation responses to test delayed updates, damaged markup, and popover boundaries. To additionally test inline formatting with Chrome's actual local translator, set `KOTOBA_NATIVE_TRANSLATOR=1` and run `npm run test:format`. This requires a supported Chrome installation and may download its language model. `KOTOBA_TEST_PROFILE` can select a dedicated test profile with an existing model.
+
+`npm run test:math` checks Japanese → English, target switching to Indonesian, and intact formula subtrees. With `KOTOBA_NATIVE_TRANSLATOR=1`, it additionally supports testing Japanese → English with Chrome's actual translator.
 
 To build an installable ZIP with Python, run `python scripts/package.py`. The runtime ZIP is written to `dist/` and excludes development dependencies and browser profiles.
 

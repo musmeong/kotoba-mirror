@@ -2,7 +2,7 @@
 
 Extension Chrome untuk belajar dari satu halaman dalam dua bahasa. Terjemahan tampil di jendela kiri, halaman asli di jendela kanan. Pilihan awal: Inggris → Jepang.
 
-Versi **0.3.4** mempertahankan format kode inline dan shortcut: teks, huruf besar/kecil, font monospace, warna, dan latar kode mengikuti halaman asli. Popover panjang, tampilan stabil, furigana, dan sinkronisasi tetap tersedia.
+Versi **0.3.5** memperbaiki penerjemahan situs Jepang yang memakai rumus KaTeX, MathJax, atau MathML. Rumus tetap utuh sementara kalimat di sekitarnya diterjemahkan. Format kode inline, popover panjang, tampilan stabil, furigana, dan sinkronisasi tetap tersedia.
 
 ## Pasang dalam satu menit
 
@@ -27,6 +27,10 @@ Tidak perlu Node.js, npm, API key, atau akun baru untuk memakai extension. Ini p
 8. Klik **Selesai**, atau tutup jendela mirror, untuk mengakhiri sesi dan memulihkan posisi serta ukuran jendela Chrome asli.
 
 Kotak **Scroll** dan **Klik** dapat mematikan masing-masing sinkronisasi. Tombol **↻** mengambil ulang tampilan halaman, tanpa memuat ulang situs aslinya. Saat mengganti bahasa di mirror, klik tombol aktivasi lagi.
+
+Untuk situs yang sudah berbahasa Jepang, pilih **Bahasa asli: 日本語 — Jepang**, lalu pilih **Bahasa belajar: English** atau **Bahasa Indonesia** sesuai tujuanmu. Pratinjau pasangan bahasa mengikuti pilihan dropdown. Arah Jepang → Inggris juga diuji langsung pada halaman soal OnlineMathContest yang dilaporkan. Ketersediaan pasangan bahasa lain mengikuti penerjemah Chrome.
+
+Rumus yang sudah dirender oleh KaTeX, MathJax, atau MathML dipertahankan sebagai elemen asli. Hanya satu representasi rumus dipakai sebagai konteks kalimat, sehingga lapisan matematika untuk aksesibilitas tidak ikut membuat angka ganda dalam input penerjemahan. Rumus tidak diterjemahkan atau diberi furigana. Teks di dalam gambar dan canvas tetap tidak dapat diterjemahkan.
 
 ## Blok teks lalu hover
 

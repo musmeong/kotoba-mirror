@@ -3,9 +3,20 @@ globalThis.KotobaBlocks = (() => {
   const blocks = 'p,h1,h2,h3,h4,h5,h6,li,button,summary,label,td,th,figcaption,blockquote,div';
   const inline = new Set('A ABBR B BDI BDO BR CITE DEL EM I MARK Q S SMALL SPAN STRONG SUB SUP TIME U WBR'.split(' '));
   const protectedTags = new Set('CODE KBD SAMP TT IMG SVG MATH'.split(' '));
-  const isProtected = (node, skipped) => protectedTags.has(node.tagName) || node.hasAttribute('data-km-code') || node.matches(skipped);
+  const mathSelector = 'math,.katex,.katex-display,mjx-container,.MathJax,.MathJax_Display';
+  const isProtected = (node, skipped) => protectedTags.has(node.tagName) || node.hasAttribute('data-km-code') || node.matches(mathSelector) || node.matches(skipped);
   const clean = text => text.replace(/&(?:amp;)?(?:#x0*(?:20|a0)|#0*(?:32|160)|nbsp);/gi, ' ');
   const escape = text => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  function protectedText(node) {
+    if (!node.matches(mathSelector)) return node.textContent || node.getAttribute('alt') || '';
+    // KaTeX contains both accessible MathML and visible HTML. Send one formula
+    // for sentence context; restore the entire original renderer tree afterwards.
+    const tex = node.querySelector('annotation[encoding="application/x-tex"]');
+    if (tex) return tex.textContent;
+    const formula = (node.querySelector('math') || node).cloneNode(true);
+    formula.querySelectorAll('annotation,annotation-xml').forEach(child => child.remove());
+    return formula.textContent;
+  }
   function eligible(root, skipped) {
     for (const child of root.children) {
       if (isProtected(child, skipped)) continue;
@@ -27,7 +38,8 @@ globalThis.KotobaBlocks = (() => {
         inline.has(current.tagName) || ['CODE', 'KBD', 'SAMP', 'TT'].includes(current.tagName) ? current.localName : 'span';
       const retryTag = tag === 'strong' ? 'b' : tag === 'em' ? 'i' : tag;
       slots.set(id, { node: current, tag, retryTag, protectedContent });
-      const children = protectedContent ? [{ input: escape(current.textContent || current.getAttribute('alt') || ''), retry: escape(current.textContent || current.getAttribute('alt') || '') }] : [...current.childNodes].map(serialize);
+      const protectedInput = protectedContent ? escape(protectedText(current)) : '';
+      const children = protectedContent ? [{ input: protectedInput, retry: protectedInput }] : [...current.childNodes].map(serialize);
       // Attribute-free, numbered tags survive the local model more reliably than
       // long data attributes. A different, minimal HTML encoding is the retry.
       return {
@@ -134,5 +146,5 @@ globalThis.KotobaBlocks = (() => {
     if (current) result.push(current);
     return result;
   }
-  return { collect, apply, fallback, chunks, clean };
+  return { collect, apply, fallback, chunks, clean, mathSelector };
 })();

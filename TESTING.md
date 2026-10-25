@@ -147,4 +147,20 @@ Penanda utama sekarang memakai tag bernomor tanpa atribut. Retry memakai penanda
 
 Untuk menjalankan mode native, set `KOTOBA_NATIVE_TRANSLATOR=1`, lalu jalankan `npm run test:format`. `KOTOBA_TEST_PROFILE` dapat menunjuk profil uji khusus dengan model yang sudah diunduh. Mode native membutuhkan Chrome dengan Translator API dan paket bahasa yang tersedia. Suite popover dan render stabil juga dijalankan kembali. Sepuluh pemeriksaan terpisah dengan model asli turut lulus: konteks kalimat `programming`, seleksi mouse, furigana yang dikecualikan dari pilihan, tooltip, tautan, dan keamanan markup.
 
+## Perbaikan 0.3.5 — situs Jepang dan rumus matematika
+
+Masalah direproduksi langsung di `https://onlinemathcontest.com/contests/omcb086/tasks/12532` dengan bahasa sumber `ja` dan target `en`, memakai penerjemah lokal Chrome asli. Versi 0.3.4 berhenti dengan pesan `Format asli belum dapat dipertahankan`. Paragraf pertama mengirim 21 penanda bertingkat dari HTML dan MathML KaTeX; angka konteks seperti `2` terbaca sebagai `22` karena lapisan visual dan aksesibilitas digabung.
+
+Setelah perbaikan, rumus KaTeX menjadi satu slot yang dilindungi, dengan satu representasi TeX untuk konteks. MathJax dan MathML juga dipertahankan sebagai satu subtree sumber. Halaman OMC yang sama berhasil mencapai status terhubung dan menampilkan kalimat soal berbahasa Inggris. Seluruh 11 subtree KaTeX identik dengan sumber, dan paragraf sumber tidak berubah. Pemeriksaan ini memakai halaman publik tanpa login, tidak mengirim jawaban.
+
+`tests/math-translation.cjs` memeriksa:
+
+- Dropdown Jepang → Inggris serta pratinjaunya sesuai, prosa diterjemahkan, dan seluruh subtree rumus identik dengan sumber.
+- Satu rumus KaTeX menghasilkan satu slot tanpa pengulangan angka dari MathML dan HTML.
+- Kerusakan penanda dipaksakan dan retry tetap mempertahankan KaTeX, SVG MathJax, serta MathML.
+- Perubahan dropdown target ke Indonesia memanggil pasangan `ja` → `id` dan menampilkan teks Indonesia.
+- Markup sumber tidak berubah dan tidak ada uncaught browser error.
+
+Semua pemeriksaan tersebut lulus dengan penerjemah deterministik. Mode `KOTOBA_NATIVE_TRANSLATOR=1` turut lulus untuk arah Jepang → Inggris, preservasi rumus, serta halaman sumber yang tidak berubah. Tes UI target Indonesia memakai respons deterministik untuk memeriksa pemilihan pasangan bahasa; bukan penilaian kualitas model Jepang → Indonesia.
+
 Pengujian ini tidak membuktikan kompatibilitas dengan semua situs, kontrol khusus, atau akun Dataquest yang memerlukan login. Batas kompatibilitas tercantum di README.

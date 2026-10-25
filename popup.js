@@ -1,4 +1,8 @@
 const $ = id => document.getElementById(id);
+function updatePreview() {
+  for (const id of ['source', 'target']) $(id + '-preview').textContent = $(id).selectedOptions[0]?.label.split(' — ')[0] || '';
+}
+for (const id of ['source', 'target']) $(id).addEventListener('change', updatePreview);
 (async () => {
   const { settings = {} } = await chrome.storage.local.get('settings');
   KotobaFillLanguages($('source'), settings.sourceLanguage || 'en');
@@ -6,6 +10,7 @@ const $ = id => document.getElementById(id);
   $('scroll').checked = settings.syncScroll !== false;
   $('click').checked = settings.syncClick !== false;
   $('furigana').checked = settings.showFurigana !== false;
+  updatePreview();
 })();
 $('start').addEventListener('click', async () => {
   const button = $('start');

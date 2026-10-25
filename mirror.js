@@ -11,7 +11,7 @@ const selectionTranslation = KotobaSelection.create({
   frame: $('mirror-frame'),
   getLanguages: () => translator && !ended ? { sourceLanguage: settings.targetLanguage, targetLanguage: settings.sourceLanguage } : null
 });
-const skipped = 'pre,code,kbd,samp,tt,[data-km-code],script,style,noscript,textarea,input,select,[contenteditable],[data-km-editor],[translate="no"],.notranslate,svg,math,ruby,rt,rp';
+const skipped = `pre,code,kbd,samp,tt,[data-km-code],script,style,noscript,textarea,input,select,[contenteditable],[data-km-editor],[translate="no"],.notranslate,svg,ruby,rt,rp,${KotobaBlocks.mathSelector}`;
 KotobaFillLanguages($('target'), 'ja');
 function status(text, error = false) { $('status').textContent = text; $('status').classList.toggle('error', error); }
 function send(message) {
