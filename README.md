@@ -34,6 +34,8 @@ These screenshots were supplied by the project owner and illustrate the workflow
 
 ## Install
 
+[Download the latest release ZIP](https://github.com/musmeong/kotoba-mirror/releases/latest)
+
 Use **Google Chrome desktop 138+** with the Translator API available.
 
 1. Download and extract the release ZIP, or download/clone this repository.
