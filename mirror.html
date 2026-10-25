@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kotoba Mirror</title><link rel="stylesheet" href="ui.css"></head>
+<body class="mirror">
+  <header class="toolbar">
+    <div class="brand"><span class="mark" aria-hidden="true">文</span><div><strong>Kotoba Mirror</strong><small id="site">Terjemahan di kiri</small></div></div>
+    <div class="tools"><label for="target" hidden>Bahasa belajar</label><select id="target" aria-label="Bahasa belajar"></select><button id="translate" class="primary">Terjemahkan</button><button id="refresh" title="Ambil ulang halaman asli" aria-label="Muat ulang mirror">↻</button><button id="close" title="Akhiri sesi dan pulihkan jendela asli">Selesai</button></div>
+  </header>
+  <div class="statusbar"><p id="status" role="status" aria-live="polite">Menghubungkan halaman asli…</p><label class="check" id="furigana-option"><input id="furigana" type="checkbox" checked> Furigana</label><label class="check"><input id="scroll" type="checkbox" checked> Scroll</label><label class="check"><input id="click" type="checkbox" checked> Klik</label></div>
+  <main class="frame-wrap">
+    <iframe id="mirror-frame" class="page-frame" title="Terjemahan halaman belajar" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe>
+    <iframe id="render-buffer" class="page-frame" data-km-buffer aria-hidden="true" tabindex="-1" title="Menyiapkan terjemahan" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe>
+    <div id="render-loading" role="status" hidden>Menyiapkan halaman terjemahan…</div>
+    <section id="welcome" class="welcome"><div class="welcome-inner"><span class="mark" aria-hidden="true">文</span><h1>Satu pelajaran.<br>Dua cara memahami.</h1><p>Halaman asli tetap hidup di kanan. Di sini, baca versi bahasa pilihanmu sambil mengikuti scroll dan klik yang sama.</p><button id="activate" class="primary">Aktifkan terjemahan Jepang</button><p id="setup-status" role="status">Klik untuk menyiapkan penerjemah lokal Chrome.</p><p class="fine">Pertama kali, Chrome perlu internet untuk mengunduh paket bahasa. Isi pelajaran diterjemahkan di perangkatmu. Mengetik dan menjalankan kode tetap di halaman asli.</p></div></section>
+  </main>
+  <footer class="footer"><span id="pair">English ⇄ 日本語</span><span>Ketik dan jalankan kode di kanan</span><span>Terjemahan lokal Chrome</span></footer>
+  <aside id="selection-tooltip" role="dialog" aria-labelledby="selection-label" aria-live="polite" hidden><header class="tooltip-header"><strong id="selection-label">Arti teks pilihan</strong><button id="selection-close" type="button" aria-label="Tutup terjemahan">×</button></header><div id="selection-content" tabindex="0" aria-label="Isi terjemahan, dapat digulir"><div id="selection-original" dir="auto"></div><p id="selection-result" dir="auto"></p></div><small id="selection-hint">Esc untuk menutup</small></aside>
+  <script src="languages.js"></script><script src="furigana.js"></script><script src="translation-blocks.js"></script><script src="selection-translation.js"></script><script src="mirror.js"></script>
+</body></html>
