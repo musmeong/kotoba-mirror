@@ -1,14 +1,19 @@
 {
   "name": "kotoba-mirror",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "description": "Chrome extension for side-by-side language learning",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "check": "node scripts/check.cjs",
     "test:popover": "node tests/long-tooltip.cjs",
     "test:render": "node tests/stable-render.cjs",
-    "test": "npm run check && npm run test:popover && npm run test:render"
+    "test:format": "node tests/format-preservation.cjs",
+    "test": "npm run check && npm run test:popover && npm run test:render && npm run test:format"
   },
-  "devDependencies": { "playwright": "1.62.1" }
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
 }

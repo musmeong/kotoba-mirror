@@ -129,4 +129,22 @@ Tes UI memakai hasil terjemahan deterministik agar panjang teks dan penanda kata
 
 Untuk otomatisasi, salinan manifest uji diberi izin **localhost saja**, agar pengujian dapat memanggil popup tanpa mengoperasikan tombol toolbar browser. Manifest yang dikirim tetap hanya memakai `activeTab`, `scripting`, dan `storage`, tanpa `host_permissions`.
 
+## Perbaikan 0.3.4 — format kode inline dan shortcut
+
+Kasus dari screenshot direproduksi dengan paragraf lengkap yang memuat `print("Hello World")`, `Hello World`, `Shift + Enter`, `Alt + Enter`, dan `Ctrl + /`, serta teks tebal pada `code editor` dan `Run Code`. Sebelumnya, model dapat merusak atribut penanda HTML dan mengubah huruf besar/kecil kode. Jalur fallback kemudian meratakan format paragraf.
+
+Penanda utama sekarang memakai tag bernomor tanpa atribut. Retry memakai penanda HTML pendek yang berbeda, termasuk alias `b` untuk `strong`; elemen akhir selalu dikembalikan dari salinan sumber yang telah disanitasi. Tidak ada fallback yang meratakan seluruh paragraf menjadi teks biasa.
+
+`tests/format-preservation.cjs` dijalankan dengan respons deterministik dan secara terpisah dengan penerjemah lokal Chrome asli, Inggris → Jepang, serta furigana aktif. Keduanya lulus tujuh kelompok pemeriksaan:
+
+- Kode dan shortcut identik, termasuk kapitalisasi, tag, kelas, susunan anak, font, warna, latar, padding, dan radius sudut. Kode tetap di posisi kalimatnya, tidak dikumpulkan di akhir paragraf. Teks tebal dipertahankan dan prosa Inggris diganti. Kode tidak diberi ruby; blok kode tidak berubah.
+- Penanda yang hilang, berulang, memakai tag salah, atau menyisipkan script ditolak. Atribut/URL dari model diabaikan. Isi kode yang diubah model diganti dengan kode asli.
+- Kerusakan penanda utama dipaksakan pada semua paragraf berformat. Retry tetap memakai model asli pada mode native dan mempertahankan seluruh format. Kasus lama `All of the applications mentioned above...` juga diperiksa agar tidak meninggalkan prosa Inggris.
+- Tautan setelah retry mempertahankan label terjemahannya serta target aslinya dan menjalankan tepat satu klik pada sumber.
+- Jika kedua penanda dipaksa gagal, dokumen Jepang terakhir tetap terlihat tanpa meratakan kode.
+- Percobaan berikutnya berhasil tanpa mengulang hasil rusak dari cache.
+- Markup halaman sumber tidak berubah dan tidak ada uncaught browser error.
+
+Untuk menjalankan mode native, set `KOTOBA_NATIVE_TRANSLATOR=1`, lalu jalankan `npm run test:format`. `KOTOBA_TEST_PROFILE` dapat menunjuk profil uji khusus dengan model yang sudah diunduh. Mode native membutuhkan Chrome dengan Translator API dan paket bahasa yang tersedia. Suite popover dan render stabil juga dijalankan kembali. Sepuluh pemeriksaan terpisah dengan model asli turut lulus: konteks kalimat `programming`, seleksi mouse, furigana yang dikecualikan dari pilihan, tooltip, tautan, dan keamanan markup.
+
 Pengujian ini tidak membuktikan kompatibilitas dengan semua situs, kontrol khusus, atau akun Dataquest yang memerlukan login. Batas kompatibilitas tercantum di README.

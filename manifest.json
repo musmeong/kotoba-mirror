@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kotoba Mirror — Belajar berdampingan",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Belajar dua bahasa berdampingan. Scroll dan klik terhubung, furigana Jepang, serta terjemahan khusus teks yang dipilih.",
   "minimum_chrome_version": "138",
   "permissions": ["activeTab", "scripting", "storage"],

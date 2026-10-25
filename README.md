@@ -18,7 +18,7 @@ Highlight text in the translated window and hover over the selection to translat
 
 ![A selected Japanese phrase with its English translation in a popover](docs/screenshots/selected-text-translation.png)
 
-These screenshots were supplied by the project owner and illustrate the workflow on Dataquest. They may show an earlier version. Version **0.3.3** adds scrollable popovers for long text.
+These screenshots were supplied by the project owner and illustrate the workflow on Dataquest. They may show an earlier version. Version **0.3.4** preserves inline code and shortcut formatting, including during translation retries.
 
 ## Features
 
@@ -30,6 +30,7 @@ These screenshots were supplied by the project owner and illustrate the workflow
 - Hover a paragraph to read its full original text, or highlight a phrase for a specific translation.
 - Scroll inside long popovers; move the pointer into the popover to keep it open. Close with **×** or **Esc**.
 - Stable translated views: updates are prepared out of sight and shown only when ready.
+- Inline code and keyboard shortcuts keep their original text, monospace font, colors, and background. Bold text and links stay inside the translated sentence.
 - Original window position and size restored when the session ends.
 
 ## Install
@@ -58,7 +59,7 @@ No build step, Node.js, or account is required to use the extension. Node.js is 
 
 For long hover text, move into the popover and scroll. Its header and close button remain available while the full text scrolls. Selected-text translation supports up to 2,000 characters.
 
-To update an existing installation, replace the extension files, click **Reload** on `chrome://extensions`, and start a new session. The current version is **0.3.3**.
+To update an existing installation, end the mirror session, replace the extension files, and click **Reload** on `chrome://extensions`. Save any work in the original lesson, refresh that tab, and start a new session. The current version is **0.3.4**.
 
 [Panduan lengkap dalam Bahasa Indonesia](docs/guide.id.md)
 
@@ -72,6 +73,7 @@ Lesson snapshots and translation caches stay in memory during the session. Langu
 
 - Desktop Chrome only; another Chromium browser may not expose the same translation API.
 - Code blocks remain unchanged. Inputs are mirrored read-only; type in the original page.
+- If translation damages inline formatting, the extension retries the complete sentence while retaining its elements. If both attempts fail, it keeps the previous translated view and shows a retry message.
 - Embedded frames, Shadow DOM, canvas, video, and text in images are not translated.
 - Some controls require trusted pointer events and must be used on the original website.
 - Same-origin navigation reconnects automatically. After navigating to another domain, activate the extension on the new page.
@@ -103,6 +105,8 @@ npm test
 ```
 
 Tests use isolated browser profiles under the ignored `work/` directory. They prefer installed Google Chrome when available; set `KOTOBA_CHROME_EXECUTABLE` to choose another executable. A test-only copy of the manifest receives localhost access; the release manifest keeps its original permissions.
+
+The default suite controls translation responses to test delayed updates, damaged markup, and popover boundaries. To additionally test inline formatting with Chrome's actual local translator, set `KOTOBA_NATIVE_TRANSLATOR=1` and run `npm run test:format`. This requires a supported Chrome installation and may download its language model. `KOTOBA_TEST_PROFILE` can select a dedicated test profile with an existing model.
 
 To build an installable ZIP with Python, run `python scripts/package.py`. The runtime ZIP is written to `dist/` and excludes development dependencies and browser profiles.
 

@@ -20,6 +20,21 @@
     return css.replace(/url\(\s*(['"]?)([^)'"\s]+)\1\s*\)/gi, (all, quote, url) => url.startsWith('#') ? all : `url("${absolute(url).replaceAll('"', '%22')}")`)
       .replace(/@import\s+(['"])([^'"]+)\1/gi, (all, quote, url) => `@import "${absolute(url)}"`);
   }
+  function preserveCodeStyle(node, copy) {
+    const semantic = node.matches('code,kbd,samp,tt,[role="code"]');
+    if (!semantic && node.tagName !== 'SPAN') return;
+    const style = getComputedStyle(node);
+    const codeClass = /(?:^|[\s_-])(?:code|kbd|samp|monospace)(?:$|[\s_-])/i.test(node.getAttribute('class') || '');
+    const monospace = /mono|consolas|courier|menlo/i.test(style.fontFamily) &&
+      node.parentElement && style.fontFamily !== getComputedStyle(node.parentElement).fontFamily;
+    if (!semantic && !codeClass && !monospace) return;
+    copy.setAttribute('data-km-code', '');
+    // Preserve the source chip even when responsive CSS changes between windows.
+    for (const name of ['font-family','font-size','font-weight','font-style','line-height','color','background-color',
+      'padding-top','padding-right','padding-bottom','padding-left','border-radius','white-space','letter-spacing']) {
+      copy.style.setProperty(name, style.getPropertyValue(name), 'important');
+    }
+  }
   function clone(node, doc, map) {
     if (node.nodeType === Node.TEXT_NODE) return doc.createTextNode(node.data);
     if (node.nodeType !== Node.ELEMENT_NODE || blocked.has(node.tagName)) return null;
@@ -44,6 +59,7 @@
       try { copy.setAttribute(attr.name, value); } catch { /* Invalid site attributes are omitted. */ }
     }
     copy.setAttribute('data-km-id', id);
+    preserveCodeStyle(node, copy);
     if (node.tagName === 'IMG' && node.currentSrc) copy.setAttribute('src', absolute(node.currentSrc));
     if (node.tagName === 'STYLE') {
       let css = node.textContent;

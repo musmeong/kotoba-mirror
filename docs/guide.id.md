@@ -2,7 +2,7 @@
 
 Extension Chrome untuk belajar dari satu halaman dalam dua bahasa. Terjemahan tampil di jendela kiri, halaman asli di jendela kanan. Pilihan awal: Inggris → Jepang.
 
-Versi **0.3.3** menambahkan popover yang dapat digulir untuk teks panjang, baik saat hover paragraf maupun saat memilih teks. Tampilan stabil, furigana, dan sinkronisasi tetap tersedia.
+Versi **0.3.4** mempertahankan format kode inline dan shortcut: teks, huruf besar/kecil, font monospace, warna, dan latar kode mengikuti halaman asli. Popover panjang, tampilan stabil, furigana, dan sinkronisasi tetap tersedia.
 
 ## Pasang dalam satu menit
 
@@ -48,7 +48,9 @@ Contoh yang diuji dengan penerjemah Chrome asli:
 - Sumber: `When we give instructions to a computer, it's called programming.` dengan `programming` di dalam elemen tebal.
 - Hasil: `コンピューターに指示を出すと、プログラミングと呼ばれます。`
 
-Penanda spasi literal seperti `&#x20;` dibersihkan pada teks biasa. Blok kode tetap dipertahankan. Jika model gagal mempertahankan penanda format, paragraf asli **diganti** dengan satu terjemahan kalimat utuh. Teks Inggris tidak ditambahkan lagi di atas terjemahan. Pada bagian tersebut, format tebal dapat hilang; kode/media tetap dipertahankan, dan tautan tersedia lewat ikon ↗ yang meneruskan klik ke tautan asli. Mesin penerjemah lokal Chrome tetap dapat menghasilkan pilihan kata atau gaya yang berbeda dari Google Translate pada menu klik kanan.
+Penanda spasi literal seperti `&#x20;` dibersihkan pada teks biasa. Blok kode, kode inline seperti `print("Hello World")`, serta shortcut seperti `Shift + Enter` dipertahankan dari elemen asli. Kode tidak diterjemahkan atau diberi furigana. Kalimat Jepang di sekitarnya tetap diterjemahkan sebagai satu unit, beserta teks tebal dan tautannya.
+
+Jika model merusak penanda format, extension mencoba ulang seluruh kalimat dengan penanda alternatif sambil tetap mempertahankan elemen asli. Kode tetap berada di dalam kalimat, dengan format aslinya. Jika kedua percobaan gagal, tampilan terjemahan terakhir tetap terlihat dan status meminta mencoba lagi lewat **Terjemahkan**. Mesin penerjemah lokal Chrome tetap dapat menghasilkan pilihan kata atau gaya yang berbeda dari Google Translate pada menu klik kanan.
 
 Hanya satu pasangan jendela aktif pada satu waktu. Memulai sesi baru akan mengakhiri sesi sebelumnya. Penataan jendela asli juga memengaruhi tab lain dalam jendela yang sama. Tampilan berdampingan paling nyaman pada layar lebar.
 
@@ -69,7 +71,7 @@ Selama isi halaman asli sudah berubah tetapi terjemahannya belum siap, klik pada
 - Bacaan bersifat otomatis. Kata dengan beberapa bacaan, nama orang/tempat, dan istilah khusus dapat diberi bacaan yang keliru; ini alat bantu, bukan jaminan pelafalan yang benar dalam semua konteks.
 - Furigana tidak ditambahkan pada blok kode, kolom input, atau ruby yang sudah ada. Kontrol furigana disembunyikan ketika bahasa belajar selain Jepang.
 
-Untuk memperbarui pemasangan lama: akhiri sesi, ganti isi folder extension lama dengan isi paket baru, buka `chrome://extensions`, lalu klik **Reload / Muat ulang** pada Kotoba Mirror. Setelah itu mulai sesi baru. Jika folder baru berbeda, hapus pemasangan lama dan gunakan Load unpacked pada folder baru.
+Untuk memperbarui pemasangan lama: akhiri sesi, ganti isi folder extension lama dengan isi paket baru, buka `chrome://extensions`, lalu klik **Reload / Muat ulang** pada Kotoba Mirror. Simpan pekerjaan di halaman asli, muat ulang tab itu, lalu mulai sesi baru. Jika folder baru berbeda, hapus pemasangan lama dan gunakan Load unpacked pada folder baru.
 
 ## Cara kerjanya
 

@@ -11,7 +11,7 @@ const selectionTranslation = KotobaSelection.create({
   frame: $('mirror-frame'),
   getLanguages: () => translator && !ended ? { sourceLanguage: settings.targetLanguage, targetLanguage: settings.sourceLanguage } : null
 });
-const skipped = 'pre,code,kbd,samp,script,style,noscript,textarea,input,select,[contenteditable],[data-km-editor],[translate="no"],.notranslate,svg,math,ruby,rt,rp';
+const skipped = 'pre,code,kbd,samp,tt,[data-km-code],script,style,noscript,textarea,input,select,[contenteditable],[data-km-editor],[translate="no"],.notranslate,svg,math,ruby,rt,rp';
 KotobaFillLanguages($('target'), 'ja');
 function status(text, error = false) { $('status').textContent = text; $('status').classList.toggle('error', error); }
 function send(message) {
@@ -245,15 +245,18 @@ async function translatePage() {
     for (const unit of tasks) {
       if (!valid()) return;
       const rich = unit.slots.size > 0;
-      const useRich = rich && unit.input.length <= 6000;
-      const input = useRich ? unit.input : rich ? unit.fallbackText : unit.text;
-      const translated = input ? await translate(input, useRich) : '';
+      const input = rich ? unit.input : unit.text;
+      const translated = input ? await translate(input, rich) : '';
       if (!valid()) return;
-      let applied = rich && !useRich ? null : KotobaBlocks.apply(unit, translated);
+      let applied = KotobaBlocks.apply(unit, translated);
       if (!applied) {
-        const plain = useRich ? (unit.fallbackText ? await translate(unit.fallbackText) : '') : translated;
+        cache.delete(`${runPair}:rich:${input}`);
+        // Retry the entire sentence with a second structured encoding. Flattening
+        // to plain text would lose inline formatting and move code out of place.
+        const retry = await translate(unit.fallbackInput, true);
         if (!valid()) return;
-        applied = KotobaBlocks.fallback(unit, plain);
+        try { applied = KotobaBlocks.fallback(unit, retry); }
+        finally { if (!applied) cache.delete(`${runPair}:rich:${unit.fallbackInput}`); }
       }
       if (job.targetLanguage === 'ja' && job.furigana && !furiganaFailed) {
         if (complete === 0) status('Menambahkan furigana…');
