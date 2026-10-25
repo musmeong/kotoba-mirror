@@ -18,7 +18,7 @@ Highlight text in the translated window and hover over the selection to translat
 
 ![A selected Japanese phrase with its English translation in a popover](docs/screenshots/selected-text-translation.png)
 
-These screenshots were supplied by the project owner and illustrate the workflow on Dataquest. They may show an earlier version. Version **0.3.5** also preserves rendered mathematics when translating Japanese websites.
+These screenshots were supplied by the project owner and illustrate the workflow on Dataquest. They may show an earlier version. Version **0.3.6** improves image handling, code-widget sizing, and scroll alignment.
 
 ## Features
 
@@ -32,6 +32,8 @@ These screenshots were supplied by the project owner and illustrate the workflow
 - Stable translated views: updates are prepared out of sight and shown only when ready.
 - Inline code and keyboard shortcuts keep their original text, monospace font, colors, and background. Bold text and links stay inside the translated sentence.
 - Rendered KaTeX, MathJax, and MathML expressions stay intact while surrounding prose is translated.
+- Images, SVG diagrams, and decorative elements stay in place while the surrounding text is translated. A failed image request does not stop the lesson.
+- Code widgets retain their source height. Scroll synchronization follows corresponding reading blocks and ignores older queued positions.
 - Original window position and size restored when the session ends.
 
 ## Install
@@ -62,7 +64,7 @@ For a Japanese website, set **Bahasa asli** to **日本語 — Jepang** and **Ba
 
 For long hover text, move into the popover and scroll. Its header and close button remain available while the full text scrolls. Selected-text translation supports up to 2,000 characters.
 
-To update an existing installation, end the mirror session, replace the extension files, and click **Reload** on `chrome://extensions`. Save any work in the original lesson, refresh that tab, and start a new session. The current version is **0.3.5**.
+To update an existing installation, end the mirror session, replace the extension files, and click **Reload** on `chrome://extensions`. Save any work in the original lesson, refresh that tab, and start a new session. Refreshing the original tab is required to load the updated page script. The current version is **0.3.6**.
 
 [Panduan lengkap dalam Bahasa Indonesia](docs/guide.id.md)
 
@@ -78,6 +80,7 @@ Lesson snapshots and translation caches stay in memory during the session. Langu
 - Code blocks remain unchanged. Inputs are mirrored read-only; type in the original page.
 - If translation damages inline formatting, the extension retries the complete sentence while retaining its elements. If both attempts fail, it keeps the previous translated view and shows a retry message.
 - Embedded frames, Shadow DOM, canvas, video, and text in images are not translated.
+- Unavailable images keep their place without blocking text translation. Images requiring access the mirror cannot obtain may still fail to load.
 - Some controls require trusted pointer events and must be used on the original website.
 - Same-origin navigation reconnects automatically. After navigating to another domain, activate the extension on the new page.
 - Machine translations and automatic furigana can be wrong, especially for names or ambiguous words.
@@ -91,6 +94,7 @@ The extension uses Manifest V3 and plain JavaScript. Runtime dependencies are bu
 | --- | --- |
 | `background.js` | Session lifecycle, window arrangement, and message routing |
 | `source.js` | Sanitized snapshots, element mapping, and original-page actions |
+| `scroll-sync.js` | Shared reading anchors and scroll positioning for both windows |
 | `mirror.js` | Translation, hidden preparation, and stable view updates |
 | `translation-blocks.js` | Sentence grouping, inline formatting, and safe fallback rendering |
 | `selection-translation.js` | Original-text and selection popovers |
@@ -112,6 +116,8 @@ Tests use isolated browser profiles under the ignored `work/` directory. They pr
 The default suite controls translation responses to test delayed updates, damaged markup, and popover boundaries. To additionally test inline formatting with Chrome's actual local translator, set `KOTOBA_NATIVE_TRANSLATOR=1` and run `npm run test:format`. This requires a supported Chrome installation and may download its language model. `KOTOBA_TEST_PROFILE` can select a dedicated test profile with an existing model.
 
 `npm run test:math` checks Japanese → English, target switching to Indonesian, and intact formula subtrees. With `KOTOBA_NATIVE_TRANSLATOR=1`, it additionally supports testing Japanese → English with Chrome's actual translator.
+
+`npm run test:content` checks code-widget heights, CSSOM updates, images, SVG, captions, failed/slow/stalled requests, linked-image clicks, dynamic recovery, and scroll alignment. It also supports `KOTOBA_NATIVE_TRANSLATOR=1`. All automated tests launch dedicated test profiles; they do not attach to your everyday browser session.
 
 To build an installable ZIP with Python, run `python scripts/package.py`. The runtime ZIP is written to `dist/` and excludes development dependencies and browser profiles.
 

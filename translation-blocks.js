@@ -2,8 +2,9 @@
 globalThis.KotobaBlocks = (() => {
   const blocks = 'p,h1,h2,h3,h4,h5,h6,li,button,summary,label,td,th,figcaption,blockquote,div';
   const inline = new Set('A ABBR B BDI BDO BR CITE DEL EM I MARK Q S SMALL SPAN STRONG SUB SUP TIME U WBR'.split(' '));
-  const protectedTags = new Set('CODE KBD SAMP TT IMG SVG MATH'.split(' '));
+  const protectedTags = new Set('CODE KBD SAMP TT IMG PICTURE SVG MATH HR'.split(' '));
   const mathSelector = 'math,.katex,.katex-display,mjx-container,.MathJax,.MathJax_Display';
+  const mediaSelector = 'img,picture,svg,[data-km-media],[role="img"],[aria-hidden="true"],span:empty,i:empty,br,wbr,hr';
   const isProtected = (node, skipped) => protectedTags.has(node.tagName) || node.hasAttribute('data-km-code') || node.matches(mathSelector) || node.matches(skipped);
   const clean = text => text.replace(/&(?:amp;)?(?:#x0*(?:20|a0)|#0*(?:32|160)|nbsp);/gi, ' ');
   const escape = text => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -24,7 +25,7 @@ globalThis.KotobaBlocks = (() => {
     }
     return true;
   }
-  function unitFor(root, node, skipped) {
+  function unitFor(root, node, skipped, parts) {
     const slots = new Map();
     function serialize(current) {
       if (current.nodeType === Node.TEXT_NODE) {
@@ -47,11 +48,38 @@ globalThis.KotobaBlocks = (() => {
         retry: `<${retryTag} id="${id}">${['br', 'wbr'].includes(tag) ? '' : children.map(child => child.retry).join('') + `</${retryTag}>`}`
       };
     }
-    const original = clean(node ? node.data : root.textContent);
-    const children = node ? [] : [...root.childNodes].map(serialize);
+    const original = clean(node ? node.data : parts ? parts.map(part => part.textContent).join('') : root.textContent);
+    const children = node ? [] : (parts || [...root.childNodes]).map(serialize);
     const input = node ? original.trim() : children.map(child => child.input).join('').trim();
     const fallbackInput = node ? original.trim() : children.map(child => child.retry).join('').trim();
-    return { root, node, original, text: original.trim(), input, slots, fallbackInput };
+    return { root, node, parts, original, title: clean(root.textContent).trim(), text: original.trim(), input, slots, fallbackInput };
+  }
+  function containsMedia(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    const candidates = node.matches(mediaSelector) ? [node] : [...node.querySelectorAll(mediaSelector)];
+    return candidates.some(candidate => !candidate.closest(mathSelector));
+  }
+  function sections(root, skipped) {
+    const result = [];
+    function hasProse(node) {
+      if (node.nodeType === Node.TEXT_NODE) return Boolean(node.data.trim());
+      return node.nodeType === Node.ELEMENT_NODE && !isProtected(node, skipped) && [...node.childNodes].some(hasProse);
+    }
+    function visit(parent) {
+      let run = [];
+      function flush() {
+        if (run.some(hasProse)) result.push(unitFor(parent, null, skipped, run));
+        run = [];
+      }
+      for (const child of parent.childNodes) {
+        if (!containsMedia(child)) { run.push(child); continue; }
+        flush();
+        if (!child.matches(mediaSelector) && !isProtected(child, skipped)) visit(child);
+      }
+      flush();
+    }
+    visit(root);
+    return result;
   }
   function collect(doc, skipped) {
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
@@ -63,7 +91,10 @@ globalThis.KotobaBlocks = (() => {
       let root = node.parentElement.closest(blocks);
       if (!root || !eligible(root, skipped)) root = null;
       if (root) {
-        if (!seen.has(root)) { seen.add(root); units.push(unitFor(root, null, skipped)); }
+        if (!seen.has(root)) {
+          seen.add(root);
+          units.push(...(containsMedia(root) ? sections(root, skipped) : [unitFor(root, null, skipped)]));
+        }
       } else units.push(unitFor(node.parentElement, node, skipped));
     }
     return units;
@@ -109,17 +140,21 @@ globalThis.KotobaBlocks = (() => {
   }
   function apply(unit, translated) {
     translated = clean(translated);
-    unit.root.title ||= unit.text;
+    unit.root.title ||= unit.title;
     if (unit.node) {
       unit.node.data = unit.original.replace(unit.text, () => translated);
       return { scope: unit.node, fallback: false };
     }
-    if (unit.slots.size) {
-      const fragment = richFragment(unit, translated);
-      if (!fragment) return null;
-      unit.root.replaceChildren(fragment);
-    } else unit.root.replaceChildren(unit.root.ownerDocument.createTextNode(translated));
-    return { scope: unit.root, fallback: false };
+    const fragment = unit.slots.size ? richFragment(unit, translated) : unit.root.ownerDocument.createTextNode(translated);
+    if (!fragment) return null;
+    let scopes;
+    if (unit.parts) {
+      scopes = fragment.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? [...fragment.childNodes] : [fragment];
+      const range = unit.root.ownerDocument.createRange();
+      range.setStartBefore(unit.parts[0]); range.setEndAfter(unit.parts.at(-1));
+      range.deleteContents(); range.insertNode(fragment);
+    } else unit.root.replaceChildren(fragment);
+    return { scope: unit.root, scopes, fallback: false };
   }
   function fallback(unit, translated) {
     const applied = apply(unit, translated);

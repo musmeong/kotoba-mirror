@@ -2,7 +2,7 @@
 
 Extension Chrome untuk belajar dari satu halaman dalam dua bahasa. Terjemahan tampil di jendela kiri, halaman asli di jendela kanan. Pilihan awal: Inggris → Jepang.
 
-Versi **0.3.5** memperbaiki penerjemahan situs Jepang yang memakai rumus KaTeX, MathJax, atau MathML. Rumus tetap utuh sementara kalimat di sekitarnya diterjemahkan. Format kode inline, popover panjang, tampilan stabil, furigana, dan sinkronisasi tetap tersedia.
+Versi **0.3.6** memperbaiki halaman bergambar, ukuran widget kode, dan sinkronisasi scroll. Gambar serta diagram tetap berada di tempatnya; gambar yang gagal dimuat tidak menghentikan terjemahan seluruh halaman. Dukungan rumus, kode inline, popover panjang, tampilan stabil, dan furigana tetap tersedia.
 
 ## Pasang dalam satu menit
 
@@ -31,6 +31,10 @@ Kotak **Scroll** dan **Klik** dapat mematikan masing-masing sinkronisasi. Tombol
 Untuk situs yang sudah berbahasa Jepang, pilih **Bahasa asli: 日本語 — Jepang**, lalu pilih **Bahasa belajar: English** atau **Bahasa Indonesia** sesuai tujuanmu. Pratinjau pasangan bahasa mengikuti pilihan dropdown. Arah Jepang → Inggris juga diuji langsung pada halaman soal OnlineMathContest yang dilaporkan. Ketersediaan pasangan bahasa lain mengikuti penerjemah Chrome.
 
 Rumus yang sudah dirender oleh KaTeX, MathJax, atau MathML dipertahankan sebagai elemen asli. Hanya satu representasi rumus dipakai sebagai konteks kalimat, sehingga lapisan matematika untuk aksesibilitas tidak ikut membuat angka ganda dalam input penerjemahan. Rumus tidak diterjemahkan atau diberi furigana. Teks di dalam gambar dan canvas tetap tidak dapat diterjemahkan.
+
+Gambar biasa, gambar dalam tautan, diagram SVG, dan caption dipertahankan pada susunan halamannya. Teks di sekitar gambar diterjemahkan tanpa meminta model membangun ulang penanda gambar. Mirror mencoba memuat gambar lazy secara langsung dan menunggu gambar sebentar sebelum menampilkan pembaruan; gambar yang lambat atau gagal tidak menahan halaman selamanya. Jika server menolak akses gambar, gunakan halaman asli di kanan.
+
+Ukuran widget kode diambil dari halaman asli. Snapshot juga menyalin aturan stylesheet yang ditambahkan melalui JavaScript agar kotak kode tidak berubah menjadi area kosong yang sangat tinggi. Scroll memakai elemen bacaan yang bersesuaian beserta posisi di dalamnya; posisi lama yang masih antre diabaikan. Panjang paragraf Jepang dan Inggris tetap dapat berbeda, sehingga seluruh baris tidak selalu sejajar satu per satu.
 
 ## Blok teks lalu hover
 
@@ -75,7 +79,7 @@ Selama isi halaman asli sudah berubah tetapi terjemahannya belum siap, klik pada
 - Bacaan bersifat otomatis. Kata dengan beberapa bacaan, nama orang/tempat, dan istilah khusus dapat diberi bacaan yang keliru; ini alat bantu, bukan jaminan pelafalan yang benar dalam semua konteks.
 - Furigana tidak ditambahkan pada blok kode, kolom input, atau ruby yang sudah ada. Kontrol furigana disembunyikan ketika bahasa belajar selain Jepang.
 
-Untuk memperbarui pemasangan lama: akhiri sesi, ganti isi folder extension lama dengan isi paket baru, buka `chrome://extensions`, lalu klik **Reload / Muat ulang** pada Kotoba Mirror. Simpan pekerjaan di halaman asli, muat ulang tab itu, lalu mulai sesi baru. Jika folder baru berbeda, hapus pemasangan lama dan gunakan Load unpacked pada folder baru.
+Untuk memperbarui pemasangan lama: akhiri sesi, ganti isi folder extension lama dengan isi paket baru, buka `chrome://extensions`, lalu klik **Reload / Muat ulang** pada Kotoba Mirror. Simpan pekerjaan di halaman asli, muat ulang tab itu, lalu mulai sesi baru. Muat ulang tab asli diperlukan untuk memasang script halaman versi baru. Jika folder baru berbeda, hapus pemasangan lama dan gunakan Load unpacked pada folder baru.
 
 ## Cara kerjanya
 

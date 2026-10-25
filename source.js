@@ -2,7 +2,7 @@
   if (globalThis.__kotobaSource) { globalThis.__kotobaSource.attach(); return; }
   const ids = new WeakMap();
   let nodes = new Map(), nextId = 0, timer, maxTimer, frame, attached = false;
-  const suppressed = new Map(), pendingScrolls = new Map();
+  const suppressed = new Map(), pendingScrolls = new Map(), scrollTimes = new Map();
   const blocked = new Set(['SCRIPT','NOSCRIPT','OBJECT','EMBED','BASE','META','TEMPLATE']);
   const idFor = node => {
     if (!ids.has(node)) ids.set(node, `k${++nextId}`);
@@ -35,6 +35,15 @@
       copy.style.setProperty(name, style.getPropertyValue(name), 'important');
     }
   }
+  function preserveWidgetSize(node, copy) {
+    if (!node.matches('.CodeMirror,.cm-editor,.monaco-editor,.ace_editor')) return;
+    const height = node.offsetHeight || node.getBoundingClientRect().height;
+    if (!height) return;
+    copy.setAttribute('data-km-code-widget', '');
+    copy.style.setProperty('box-sizing', 'border-box', 'important');
+    for (const name of ['height','min-height','max-height']) copy.style.setProperty(name, `${height}px`, 'important');
+    copy.style.setProperty('max-width', '100%', 'important');
+  }
   function clone(node, doc, map) {
     if (node.nodeType === Node.TEXT_NODE) return doc.createTextNode(node.data);
     if (node.nodeType !== Node.ELEMENT_NODE || blocked.has(node.tagName)) return null;
@@ -44,9 +53,13 @@
     if (['IFRAME','FRAME','CANVAS','VIDEO','AUDIO'].includes(node.tagName) || node.shadowRoot) {
       const placeholder = doc.createElement('div');
       placeholder.setAttribute('data-km-id', id);
+      for (const name of ['id','class']) if (node.hasAttribute(name)) placeholder.setAttribute(name, node.getAttribute(name));
       placeholder.textContent = 'Konten interaktif — gunakan halaman asli di kanan';
       placeholder.setAttribute('translate', 'no');
-      placeholder.style.cssText = 'padding:18px;background:#edf5f7;border:1px dashed #94b5c0;color:#31525c;font:13px/1.5 sans-serif;';
+      placeholder.setAttribute('data-km-media', '');
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node), display = style.display === 'inline' ? 'inline-block' : style.display;
+      placeholder.style.cssText = `box-sizing:border-box;display:${rect.width && rect.height ? display : 'none'};visibility:${style.visibility};width:${rect.width}px;max-width:100%;height:${rect.height}px;overflow:auto;padding:18px;background:#edf5f7;border:1px dashed #94b5c0;color:#31525c;font:13px/1.5 sans-serif;`;
       return placeholder;
     }
     const copy = doc.createElementNS(node.namespaceURI, node.localName);
@@ -60,10 +73,20 @@
     }
     copy.setAttribute('data-km-id', id);
     preserveCodeStyle(node, copy);
-    if (node.tagName === 'IMG' && node.currentSrc) copy.setAttribute('src', absolute(node.currentSrc));
+    preserveWidgetSize(node, copy);
+    if (node.tagName === 'IMG') {
+      const src = node.currentSrc || node.getAttribute('src') || node.getAttribute('data-src') || node.getAttribute('data-lazy-src');
+      if (src) copy.setAttribute('src', absolute(src));
+      copy.setAttribute('loading', 'eager');
+      const rect = node.getBoundingClientRect();
+      if (rect.width && rect.height) {
+        if (!copy.hasAttribute('width')) copy.setAttribute('width', String(rect.width));
+        if (!copy.hasAttribute('height')) copy.setAttribute('height', String(rect.height));
+      }
+    }
     if (node.tagName === 'STYLE') {
       let css = node.textContent;
-      if (!css && node.sheet) { try { css = Array.from(node.sheet.cssRules, rule => rule.cssText).join('\n'); } catch { /* Cross-origin sheets use their link. */ } }
+      if (node.sheet) { try { css = Array.from(node.sheet.cssRules, rule => rule.cssText).join('\n'); } catch { /* Fall back to the source text if rules are inaccessible. */ } }
       copy.textContent = cssURLs(css);
     } else if (node.tagName !== 'TEXTAREA') {
       for (const child of node.childNodes) { const result = clone(child, doc, map); if (result) copy.append(result); }
@@ -80,16 +103,7 @@
     return copy;
   }
   function scrollState(target = document.scrollingElement) {
-    const root = !target || target === document || target === document.documentElement || target === document.body;
-    const el = root ? document.scrollingElement : target;
-    const rect = root ? { left: 0, top: 0 } : el.getBoundingClientRect();
-    const height = root ? innerHeight : el.clientHeight;
-    const width = root ? innerWidth : el.clientWidth;
-    const anchor = document.elementFromPoint(Math.max(1, rect.left + width * .4), Math.max(1, rect.top + Math.min(64, height * .15)));
-    return { id: root ? null : idFor(el), x: el.scrollLeft / Math.max(1, el.scrollWidth - el.clientWidth),
-      y: el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight),
-      anchor: anchor && el.contains(anchor) && anchor !== el ? idFor(anchor) : null,
-      offset: anchor ? (anchor.getBoundingClientRect().top - rect.top) / Math.max(1, height) : 0 };
+    return KotobaScroll.capture(document, target, idFor);
   }
   function capture() {
     clearTimeout(timer); clearTimeout(maxTimer); timer = maxTimer = undefined;
@@ -120,7 +134,8 @@
     if (!attached) return;
     const target = event.target;
     const state = scrollState(target);
-    if (performance.now() < (suppressed.get(state.id) || 0)) return;
+    if (KotobaScroll.wasApplied(state.id ? target : document.scrollingElement, suppressed.get(state.id))) return;
+    scrollTimes.set(state.id, state.time);
     pendingScrolls.set(state.id, state);
     if (!frame) frame = setTimeout(() => {
       frame = undefined;
@@ -140,7 +155,7 @@
     window.addEventListener('resize', schedule);
   }
   function detach() {
-    attached = false; observer.disconnect(); clearTimeout(timer); clearTimeout(maxTimer); clearTimeout(frame); frame = undefined; pendingScrolls.clear();
+    attached = false; observer.disconnect(); clearTimeout(timer); clearTimeout(maxTimer); clearTimeout(frame); frame = undefined; pendingScrolls.clear(); suppressed.clear(); scrollTimes.clear();
     document.removeEventListener('scroll', onScroll, true);
     document.removeEventListener('input', schedule, true);
     document.removeEventListener('change', schedule, true);
@@ -149,14 +164,13 @@
     nodes.clear();
   }
   function applyScroll(state) {
+    if (state.time && state.time < (scrollTimes.get(state.id) || 0)) return;
     const el = state.id ? nodes.get(state.id) : document.scrollingElement;
-    if (!el || !Number.isFinite(state.y) || !Number.isFinite(state.x)) return;
-    suppressed.set(state.id, performance.now() + 160);
-    const rectTop = state.id ? el.getBoundingClientRect().top : 0;
-    const anchor = nodes.get(state.anchor);
-    const height = state.id ? el.clientHeight : innerHeight;
-    const y = anchor && el.contains(anchor) && anchor !== el ? el.scrollTop + anchor.getBoundingClientRect().top - rectTop - state.offset * height : state.y * (el.scrollHeight - el.clientHeight);
-    el.scrollTo({ top: Math.max(0, y), left: Math.max(0, state.x * (el.scrollWidth - el.clientWidth)), behavior: 'instant' });
+    if (el) {
+      pendingScrolls.delete(state.id);
+      scrollTimes.set(state.id, state.time || 0);
+      suppressed.set(state.id, KotobaScroll.apply(document, el, state, id => nodes.get(id)));
+    }
   }
   chrome.runtime.onMessage.addListener((message, sender, respond) => {
     if (sender.id !== chrome.runtime.id) return;

@@ -11,7 +11,7 @@ const selectionTranslation = KotobaSelection.create({
   frame: $('mirror-frame'),
   getLanguages: () => translator && !ended ? { sourceLanguage: settings.targetLanguage, targetLanguage: settings.sourceLanguage } : null
 });
-const skipped = `pre,code,kbd,samp,tt,[data-km-code],script,style,noscript,textarea,input,select,[contenteditable],[data-km-editor],[translate="no"],.notranslate,svg,ruby,rt,rp,${KotobaBlocks.mathSelector}`;
+const skipped = `pre,code,kbd,samp,tt,[data-km-code],[data-km-code-widget],script,style,noscript,textarea,input,select,[contenteditable],[data-km-editor],[translate="no"],.notranslate,svg,ruby,rt,rp,${KotobaBlocks.mathSelector}`;
 KotobaFillLanguages($('target'), 'ja');
 function status(text, error = false) { $('status').textContent = text; $('status').classList.toggle('error', error); }
 function send(message) {
@@ -56,8 +56,11 @@ function receive(message) {
     render(force);
   }
   if (message.type === 'km:scroll' && settings.syncScroll) {
-    latestScrolls.set(message.state.id, message.state);
-    if (doc && displayedSnapshot?.url === snapshot?.url) applyScroll(message.state);
+    const previous = latestScrolls.get(message.state.id);
+    if (!message.state.time || !previous?.time || message.state.time >= previous.time) {
+      latestScrolls.set(message.state.id, message.state);
+      if (doc && displayedSnapshot?.url === snapshot?.url) applyScroll(message.state);
+    }
   }
   if (message.type === 'km:error' || message.type === 'km:ended') {
     if (message.type === 'km:ended') { ended = true; generation++; pendingRender = undefined; translator?.destroy(); selectionTranslation.destroy(); }
@@ -108,6 +111,17 @@ async function waitForStyles(renderDoc) {
     link.addEventListener('error', done, { once: true });
   })));
 }
+async function waitForImages(renderDoc) {
+  await Promise.all([...renderDoc.images].map(img => new Promise(resolve => {
+    img.loading = 'eager';
+    const failed = () => { img.title ||= img.alt || 'Gambar belum dapat dimuat. Gunakan halaman asli di kanan.'; done(); };
+    const done = () => { clearTimeout(timer); img.removeEventListener('load', done); img.removeEventListener('error', failed); resolve(); };
+    const timer = setTimeout(done, 1500);
+    img.addEventListener('load', done, { once: true });
+    img.addEventListener('error', failed, { once: true });
+    if (img.complete) { if (img.naturalWidth) done(); else failed(); }
+  })));
+}
 function publish(frame, renderDoc, job) {
   const previous = doc ? getScrollState(doc.scrollingElement) : null;
   const oldFrame = $('mirror-frame');
@@ -139,32 +153,20 @@ function publish(frame, renderDoc, job) {
 }
 function byId(id) { return id && doc?.querySelector(`[data-km-id="${CSS.escape(id)}"]`); }
 function getScrollState(target) {
-  const root = !target || target === doc || target === doc.documentElement || target === doc.body;
-  const el = root ? doc.scrollingElement : target;
-  const rect = root ? { left: 0, top: 0 } : el.getBoundingClientRect();
-  const height = root ? $('mirror-frame').clientHeight : el.clientHeight;
-  const width = root ? $('mirror-frame').clientWidth : el.clientWidth;
-  const anchor = doc.elementFromPoint(Math.max(1, rect.left + width * .4), Math.max(1, rect.top + Math.min(64, height * .15)))?.closest('[data-km-id]');
-  return { id: root ? null : el.getAttribute('data-km-id'), x: el.scrollLeft / Math.max(1, el.scrollWidth - el.clientWidth),
-    y: el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight), anchor: anchor && el.contains(anchor) && anchor !== el ? anchor.getAttribute('data-km-id') : null,
-    offset: anchor ? (anchor.getBoundingClientRect().top - rect.top) / Math.max(1, height) : 0 };
+  return KotobaScroll.capture(doc, target, el => el.getAttribute('data-km-id'));
 }
 function applyScroll(state) {
   if (!doc || !state) return;
   const el = state.id ? byId(state.id) : doc.scrollingElement;
   if (!el) return;
-  suppressed.set(state.id, performance.now() + 160);
-  const height = state.id ? el.clientHeight : $('mirror-frame').clientHeight;
-  const top = state.id ? el.getBoundingClientRect().top : 0;
-  const anchor = byId(state.anchor);
-  const y = anchor && el.contains(anchor) && anchor !== el ? el.scrollTop + anchor.getBoundingClientRect().top - top - state.offset * height : state.y * (el.scrollHeight - el.clientHeight);
-  el.scrollTo({ top: Math.max(0, y), left: Math.max(0, state.x * (el.scrollWidth - el.clientWidth)), behavior: 'instant' });
+  pendingScrolls.delete(state.id);
+  suppressed.set(state.id, KotobaScroll.apply(doc, el, state, byId));
 }
 function onScroll(event) {
   if (!settings.syncScroll || displayedSnapshot?.url !== snapshot?.url) return;
   const target = event.target;
   const state = getScrollState(target);
-  if (performance.now() < (suppressed.get(state.id) || 0)) return;
+  if (KotobaScroll.wasApplied(state.id ? target : doc.scrollingElement, suppressed.get(state.id))) return;
   pendingScrolls.set(state.id, state);
   latestScrolls.set(state.id, state);
   if (!scrollFrame) scrollFrame = setTimeout(() => {
@@ -262,9 +264,9 @@ async function translatePage() {
         if (complete === 0) status('Menambahkan furigana…');
         try {
           const nodes = [];
-          if (applied.scope.nodeType === Node.TEXT_NODE) nodes.push(applied.scope);
-          else {
-            const walker = renderDoc.createTreeWalker(applied.scope, NodeFilter.SHOW_TEXT, {
+          for (const scope of applied.scopes || [applied.scope]) {
+            if (scope.nodeType === Node.TEXT_NODE) { if (scope.data.trim()) nodes.push(scope); continue; }
+            const walker = renderDoc.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
               acceptNode: node => node.data.trim() && !node.parentElement.closest(skipped) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
             });
             while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -277,6 +279,7 @@ async function translatePage() {
       if (performance.now() - lastYield > 12) { await new Promise(resolve => setTimeout(resolve, 0)); lastYield = performance.now(); }
     }
     renderDoc.body.getBoundingClientRect();
+    await waitForImages(renderDoc);
     await Promise.race([renderDoc.fonts.ready, new Promise(resolve => setTimeout(resolve, 1500))]);
     if (valid() && job.run === generation) {
       publish(frame, renderDoc, job);

@@ -163,4 +163,24 @@ Setelah perbaikan, rumus KaTeX menjadi satu slot yang dilindungi, dengan satu re
 
 Semua pemeriksaan tersebut lulus dengan penerjemah deterministik. Mode `KOTOBA_NATIVE_TRANSLATOR=1` turut lulus untuk arah Jepang → Inggris, preservasi rumus, serta halaman sumber yang tidak berubah. Tes UI target Indonesia memakai respons deterministik untuk memeriksa pemilihan pasangan bahasa; bukan penilaian kualitas model Jepang → Indonesia.
 
+## Perbaikan 0.3.6 — media, ukuran kode, dan posisi bacaan
+
+Seluruh tes otomatis rilis ini dijalankan pada instance Chrome headless dengan profil uji khusus di workspace, terpisah dari profil browser sehari-hari. Fixture lokal meniru susunan pelajaran dengan paragraf, widget CodeMirror, gambar, dan panel scroll; ini bukan pengujian langsung pada akun Dataquest yang sedang digunakan.
+
+Tes baru `tests/content-layout.cjs` semula gagal karena model pengganti menghilangkan penanda visual kosong dan seluruh halaman berhenti diterjemahkan. Fixture juga memakai `insertRule()` pada stylesheet yang sudah berisi teks; versi lama tidak menyalin aturan tambahan itu, sehingga widget kode memakai tinggi 1.100 piksel. Setelah perbaikan, tinggi sembilan snippet, teks kode, dan warna token sama dengan sumber.
+
+Tes ini lulus sembilan kelompok pemeriksaan, baik dengan model deterministik maupun penerjemah lokal Chrome asli Inggris → Jepang, dengan furigana aktif:
+
+- Tinggi CodeMirror, warna sintaks, dan kode tetap sama setelah aturan CSSOM ditambahkan.
+- Gambar di tengah teks, gambar bertautan atau bersarang dalam span, picture/srcset yang sudah dipilih browser, lazy loading, gambar lambat, SVG, dan background image tetap tampil. Caption dan prosa di sekitarnya diterjemahkan; ikon kosong dan pemisah baris dipertahankan.
+- Gambar 404 tidak menghentikan penerjemahan paragraf setelahnya.
+- PNG, data URL, caption figure, respons 403, dan permintaan yang tidak selesai tetap menghasilkan halaman yang dapat dibaca. Placeholder canvas/iframe memakai tinggi sumber.
+- Posisi bacaan pada anchor yang bersesuaian berada dalam selisih empat piksel pada kedua arah scroll di panel bersarang, setelah beberapa blok kode dan gambar. Tes mengukur titik bacaan yang disinkronkan, bukan memaksakan seluruh paragraf dengan panjang berbeda menjadi sama tinggi.
+- Mematikan sinkronisasi tidak mengubah posisi scroll sumber.
+- Klik gambar bertautan menjalankan tepat satu aksi pada sumber.
+- Perubahan URL gambar dari 404 menjadi gambar valid memperbarui mirror tanpa memulai ulang sesi.
+- Konten sumber tidak berubah oleh extension dan tidak ada uncaught browser error.
+
+`npm test` mencakup suite popover, render stabil, format inline, matematika, serta media/layout. Untuk model asli, set `KOTOBA_NATIVE_TRANSLATOR=1` dan jalankan `npm run test:content`; profil khusus dengan model tersedia dapat dipilih lewat `KOTOBA_TEST_PROFILE`. Fixture tidak memerlukan akun, layanan eksternal, atau browser pribadi.
+
 Pengujian ini tidak membuktikan kompatibilitas dengan semua situs, kontrol khusus, atau akun Dataquest yang memerlukan login. Batas kompatibilitas tercantum di README.

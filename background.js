@@ -31,7 +31,7 @@ async function stop(closeMirror = true) {
 }
 
 async function inject(sourceTabId) {
-  await chrome.scripting.executeScript({ target: { tabId: sourceTabId }, files: ['source.js'] });
+  await chrome.scripting.executeScript({ target: { tabId: sourceTabId }, files: ['scroll-sync.js','source.js'] });
   await chrome.tabs.sendMessage(sourceTabId, { type: 'km:capture' });
 }
 
@@ -44,7 +44,7 @@ async function start(message) {
     if (!/^https?:\/\//.test(tab.url || '')) throw new Error('Buka situs HTTP/HTTPS dulu. Halaman chrome:// dan PDF bawaan tidak didukung.');
     await chrome.tabs.update(tab.id, { active: true });
     // Check access before moving any windows.
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['source.js'] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['scroll-sync.js','source.js'] });
     const win = await chrome.windows.get(tab.windowId);
     const bounds = message.bounds;
     if (!bounds || !['left', 'top', 'width', 'height'].every(k => Number.isFinite(bounds[k]))) throw new Error('Ukuran layar tidak terbaca.');
